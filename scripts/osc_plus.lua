@@ -166,20 +166,19 @@ local user_opts = {
     
     scaleforcedwindow = 2,
 
-    -- only for osc_plus
-
+    -- customize options for osc_plus
     scale_shift = 1,                     -- hr scale
-    playing_msg = "",                    -- ref https://mpv.io/manual/master/#options-osd-playing-msg
     sub_title = "hwdec: ${hwdec-current}",      -- title eg: ${contrast} ${brightness} ${gamma} ${saturation} ${hue}
     sub_title2 = "scale: ${current-window-scale}", 
     seekbar_scrollseek = "fast",         -- <fast|second|frame> 
     showonpause = false,                 -- show on pause
     showonstart = false,                 -- show on start
     showonseek = false,                  -- show on seek
-    shadowsize = 180,                    -- bottombox shadow height
+    shadowsize = 70,                    -- bottombox shadow height
     font = "sans",
     font_mono = "sans",
     font_bold = 500,
+    -- customize options for osc_plus
 }
 
 for i = 1, 99 do
@@ -2130,17 +2129,6 @@ local function bind_mouse_buttons(element_name)
     end
 end
 
-
-
-function update_options(list)
-    validate_user_opts()
-    request_tick()
-    visibility_mode(user_opts.visibility, true)
-    update_duration_watch()
-    request_init()
-end
-
-
 local function osc_init()
     msg.debug("osc_init")
 
@@ -2455,6 +2443,7 @@ local function osc_init()
         ne.eventresponder["wheel_down_press"] =
             function () mp.commandv("osd-auto", "seek", -10) end
     end
+
 
     -- tc_left (current pos)
     ne = new_element("tc_left", "button")
@@ -3343,53 +3332,6 @@ set_osc_styles()
 set_time_styles(true, true)
 set_tick_delay("display_fps", mp.get_property_number("display_fps"))
 
--- change layout
-function osc_layout(layout, no_osd)
-    if layout == "bottombar" then
-        user_opts.layout = "bottombar"
-    elseif layout == "topbar" then
-        user_opts.layout = "topbar"
-    elseif layout == "bottombox" then
-        user_opts.layout = "bottombox"
-    elseif layout == "box" then
-        user_opts.layout = "box"
-    elseif layout == "slimbox" then
-        user_opts.layout = "slimbox"
-    else
-        return
-    end
-    if not no_osd and tonumber(mp.get_property("osd-level")) >= 1 then
-        mp.osd_message("OSC layout：" .. tostring(layout))
-    end
-    update_options(list)
-end
-mp.register_script_message("osc_layout", osc_layout)
-
---  "osc-playing-msg"
-if user_opts.playing_msg ~= nil then
-    local osc_playing_msg = mp.create_osd_overlay("ass-events")
-    local opm_id = nil
-    mp.register_event("file-loaded", function()
-        path_updated = true
-        local info = mp.command_native({"expand-text", user_opts.playing_msg})
-        osc_playing_msg.data = info
-        osc_playing_msg:update()
-        if opm_id ~= nil then
-            mp.cancel_timer(opm_id)
-        end
-        opm_id = mp.add_timeout(3, function()
-            osc_playing_msg:remove()
-            opm_id = nil
-        end)
-    end)
-    mp.register_event("end-file", function()
-        if opm_id ~= nil then
-            mp.cancel_timer(opm_id)
-            opm_id = nil
-        end
-    end)
-end
-
 -- thumbfast.lua
 mp.register_script_message("thumbfast-info", function(json)
     local data = utils.parse_json(json)
@@ -3406,3 +3348,24 @@ update_duration_watch()
 set_virt_mouse_area(0, 0, 0, 0, "input_osc_plus")
 set_virt_mouse_area(0, 0, 0, 0, "window-controls_osc_plus")
 set_virt_mouse_area(0, 0, 0, 0, "window-controls-title_osc_plus")
+
+-- change layout runtime
+mp.set_property_native("user-data/osc/layout", user_opts.layout)
+mp.observe_property("user-data/osc/layout", "native", function(_, val)
+    user_opts.layout = val
+    request_init_resize()
+    mp.command("show-text " .. "layout:" .. val .. " 2000")
+end)
+local function layout()
+    local _layouts = {"box","slimbox","bottombar","slimbottombar","topbar","slimtopbar","bottombox"}
+    for i in ipairs(_layouts) do
+        if i == #_layouts then
+            mp.set_property_native("user-data/osc/layout", _layouts[1])
+            break
+        elseif mp.get_property_native("user-data/osc/layout") == _layouts[i] then
+            mp.set_property_native("user-data/osc/layout", _layouts[i+1])
+            break
+        end
+    end
+end
+mp.add_key_binding("a", "layout", layout)
