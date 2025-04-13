@@ -1331,7 +1331,7 @@ local function window_controls(topbar)
     lo.geometry = alignment == "left" and second_geo or fifth_geo
     lo.style = osc_styles.wcButtons
 
-    -- ontop: 🖈 / 📌
+    -- ontop: 🖈  📌
     ne = new_element("ontop", "button")
     if state.ontop or state.fullscreen then
         ne.content = "🖈"
@@ -1344,16 +1344,20 @@ local function window_controls(topbar)
     lo.geometry = alignment == "left" and fourth_geo or third_geo
     lo.style = osc_styles.wcButtons
 
-    -- border: 
+    -- border:   🖾 🏻
     ne = new_element("border", "button")
-    ne.content = " "
+    if state.border or state.fullscreen then
+        ne.content = "🏻"
+    else
+        ne.content = ""
+    end
     ne.eventresponder["mbtn_left_up"] =
         function ()  mp.commandv("cycle", "border")  end
     lo = add_layout("border")
     lo.geometry = alignment == "left" and fifth_geo or second_geo
     lo.style = osc_styles.wcButtons
 
-    -- menu: ☰  script-binding select/menu; script-message-to osc osc-hide
+    -- menu: ☰
     ne = new_element("wcmenu", "button")
     ne.content = icons.menu
     ne.eventresponder["mbtn_left_up"] =
