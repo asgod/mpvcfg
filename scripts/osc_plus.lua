@@ -10,7 +10,7 @@ key binding (input.conf) eg:
 
  <KEY>   script-message-to osc_plus osc-visibility <val>   # <auto|always|never|cycle>
  <KEY>   script-message-to osc_plus osc-idlescreen <val>   # <yes|no|cycle> 
- <KEY>   script-message-to osc_plus osc_layout <val>       # <*bottombox*|bottombar|topbar|box|slimbox>
+ <KEY>   script-binding osc_plus/layout       # change layout runtime
 ]]
 
 -- Disable original OSC
@@ -107,21 +107,21 @@ local user_opts = {
 
     -- luacheck: push ignore
     -- luacheck: max line length
-    menu_mbtn_left_command = "script-binding select/menu; script-message-to osc osc-hide",
+    menu_mbtn_left_command = "script-binding select/menu; script-message-to osc_plus osc-hide",
     menu_mbtn_mid_command = "",
     menu_mbtn_right_command = "",
 
     playlist_prev_mbtn_left_command = "playlist-prev",
     playlist_prev_mbtn_mid_command = "show-text ${playlist} 3000",
-    playlist_prev_mbtn_right_command = "script-binding select/select-playlist; script-message-to osc osc-hide",
+    playlist_prev_mbtn_right_command = "script-binding select/select-playlist; script-message-to osc_plus osc-hide",
 
     playlist_next_mbtn_left_command = "playlist-next",
     playlist_next_mbtn_mid_command = "show-text ${playlist} 3000",
-    playlist_next_mbtn_right_command = "script-binding select/select-playlist; script-message-to osc osc-hide",
+    playlist_next_mbtn_right_command = "script-binding select/select-playlist; script-message-to osc_plus osc-hide",
 
     title_mbtn_left_command = "script-binding stats/display-page-5",
     title_mbtn_mid_command = "show-text ${path}",
-    title_mbtn_right_command = "script-binding select/select-watch-history; script-message-to osc osc-hide",
+    title_mbtn_right_command = "script-binding select/select-watch-history; script-message-to osc_plus osc-hide",
 
     play_pause_mbtn_left_command = "cycle pause",
     play_pause_mbtn_mid_command = "cycle-values loop-playlist inf no",
@@ -129,27 +129,27 @@ local user_opts = {
 
     chapter_prev_mbtn_left_command = "osd-msg add chapter -1",
     chapter_prev_mbtn_mid_command = "show-text ${chapter-list} 3000",
-    chapter_prev_mbtn_right_command = "script-binding select/select-chapter; script-message-to osc osc-hide",
+    chapter_prev_mbtn_right_command = "script-binding select/select-chapter; script-message-to osc_plus osc-hide",
 
     chapter_next_mbtn_left_command = "osd-msg add chapter 1",
     chapter_next_mbtn_mid_command = "show-text ${chapter-list} 3000",
-    chapter_next_mbtn_right_command = "script-binding select/select-chapter; script-message-to osc osc-hide",
+    chapter_next_mbtn_right_command = "script-binding select/select-chapter; script-message-to osc_plus osc-hide",
 
     audio_track_mbtn_left_command = "cycle audio",
     audio_track_mbtn_mid_command = "cycle audio down",
-    audio_track_mbtn_right_command = "script-binding select/select-aid; script-message-to osc osc-hide",
+    audio_track_mbtn_right_command = "script-binding select/select-aid; script-message-to osc_plus osc-hide",
     audio_track_wheel_down_command = "cycle audio",
     audio_track_wheel_up_command = "cycle audio down",
 
     sub_track_mbtn_left_command = "cycle sub",
     sub_track_mbtn_mid_command = "cycle sub down",
-    sub_track_mbtn_right_command = "script-binding select/select-sid; script-message-to osc osc-hide",
+    sub_track_mbtn_right_command = "script-binding select/select-sid; script-message-to osc_plus osc-hide",
     sub_track_wheel_down_command = "cycle sub",
     sub_track_wheel_up_command = "cycle sub down",
 
     volume_mbtn_left_command = "no-osd cycle mute",
     volume_mbtn_mid_command = "",
-    volume_mbtn_right_command = "script-binding select/select-audio-device; script-message-to osc osc-hide",
+    volume_mbtn_right_command = "script-binding select/select-audio-device; script-message-to osc_plus osc-hide",
     volume_wheel_down_command = "add volume -5",
     volume_wheel_up_command = "add volume 5",
 
@@ -241,7 +241,7 @@ local margins_opts = {
 local tick_delay = 1 / 60
 local audio_track_count = 0
 local sub_track_count = 0
-local window_control_box_width = 80
+local window_control_box_width = 155
 local layouts = {}
 local is_december = os.date("*t").month == 12
 local UNICODE_MINUS = string.char(0xe2, 0x88, 0x92)  -- UTF-8 for U+2212 MINUS SIGN
@@ -291,9 +291,9 @@ local function set_osc_styles()
         bb_seekbar    = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs14\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
         bb_seektime   = ("{\\blur0.54\\bord%s\\1c&HFFFFFF\\3c&H000000\\fs18\\b%d\\fn%s}"):format(user_opts.tooltipborder, user_opts.font_bold, user_opts.font_mono),
         bb_timecodes  = ("{\\blur0\\bord0\\1c&HDCDCDC\\3c&HFFFFFF\\fs20\\b%d\\fn%s}"):format(user_opts.font_bold, user_opts.font_mono),
-        bb_cachetime  = ("{\\blur0\\bord0\\1c&HDCDCDC\\3c&HFFFFFF\\fs14\\b%d\\fn%s}"):format(user_opts.font_bold, user_opts.font_mono),
-        bb_downtitle  = ("{\\blur0\\bord0\\1c&HC0C0C0\\3c&HFFFFFF\\fs16\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
-        bb_sub_title  = ("{\\blur0\\bord0\\1c&HC0C0C0\\3c&HFFFFFF\\fs16\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
+        bb_cachetime  = ("{\\blur0\\bord0\\1c&HDCDCDC\\3c&HFFFFFF\\fs18\\b%d\\fn%s}"):format(user_opts.font_bold, user_opts.font_mono),
+        bb_downtitle  = ("{\\blur0\\bord0\\1c&HC0C0C0\\3c&HFFFFFF\\fs26\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
+        bb_sub_title  = ("{\\blur0\\bord0\\1c&HC0C0C0\\3c&HFFFFFF\\fs22\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
     }
 end
 
@@ -330,6 +330,7 @@ local state = {
     using_video_margins = false,
     border = true,
     maximized = false,
+    ontop = false,
     osd = mp.create_osd_overlay("ass-events"),
     chapter_list = {},                      -- sorted by time
     visibility_modes = {},                  -- visibility_modes to cycle through
@@ -1281,7 +1282,12 @@ local function window_controls(topbar)
         {x = controlbox_left + 30, y = button_y, an = 4, w = 25, h = 25}
     local third_geo =
         {x = controlbox_left + 55, y = button_y, an = 4, w = 25, h = 25}
-
+    local fourth_geo =
+        {x = controlbox_left + 80, y = button_y, an = 4, w = 25, h = 25}
+    local fifth_geo =
+        {x = controlbox_left + 105, y = button_y, an = 4, w = 25, h = 25}
+    local sixth_geo =
+        {x = controlbox_left + 130, y = button_y, an = 4, w = 25, h = 25}
     -- Window control buttons use symbols in the custom mpv osd font
     -- because the official unicode codepoints are sufficiently
     -- exotic that a system might lack an installed font with them,
@@ -1294,7 +1300,7 @@ local function window_controls(topbar)
     ne.eventresponder["mbtn_left_up"] =
         function () mp.commandv("quit") end
     lo = add_layout("close")
-    lo.geometry = alignment == "left" and first_geo or third_geo
+    lo.geometry = alignment == "left" and first_geo or sixth_geo
     lo.style = osc_styles.wcButtons
 
     -- Minimize: 🗕
@@ -1303,7 +1309,7 @@ local function window_controls(topbar)
     ne.eventresponder["mbtn_left_up"] =
         function () mp.commandv("cycle", "window-minimized") end
     lo = add_layout("minimize")
-    lo.geometry = alignment == "left" and second_geo or first_geo
+    lo.geometry = alignment == "left" and third_geo or fourth_geo
     lo.style = osc_styles.wcButtons
 
     -- Maximize: 🗖 /🗗
@@ -1322,7 +1328,41 @@ local function window_controls(topbar)
             end
         end
     lo = add_layout("maximize")
-    lo.geometry = alignment == "left" and third_geo or second_geo
+    lo.geometry = alignment == "left" and second_geo or fifth_geo
+    lo.style = osc_styles.wcButtons
+
+    -- ontop: 🖈 / 📌
+    ne = new_element("ontop", "button")
+    if state.ontop or state.fullscreen then
+        ne.content = "🖈"
+    else
+        ne.content = "📌"
+    end
+    ne.eventresponder["mbtn_left_up"] =
+        function () mp.commandv("cycle", "ontop") end
+    lo = add_layout("ontop")
+    lo.geometry = alignment == "left" and fourth_geo or third_geo
+    lo.style = osc_styles.wcButtons
+
+    -- border: 
+    ne = new_element("border", "button")
+    ne.content = " "
+    ne.eventresponder["mbtn_left_up"] =
+        function ()  mp.commandv("cycle", "border")  end
+    lo = add_layout("border")
+    lo.geometry = alignment == "left" and fifth_geo or second_geo
+    lo.style = osc_styles.wcButtons
+
+    -- menu: ☰  script-binding select/menu; script-message-to osc osc-hide
+    ne = new_element("wcmenu", "button")
+    ne.content = icons.menu
+    ne.eventresponder["mbtn_left_up"] =
+        function ()
+            mp.commandv("script-binding", "select/menu")
+            mp.commandv("script-message-to", "osc_plus", "osc-hide")
+        end
+    lo = add_layout("wcmenu")
+    lo.geometry = alignment == "left" and sixth_geo or first_geo
     lo.style = osc_styles.wcButtons
 
     -- deadzone below window controls
@@ -2086,6 +2126,15 @@ local function bar_layout(direction, slim)
     lo.slider.tooltip_an = 5
     lo.slider.stype = user_opts["seekbarstyle"]
     lo.slider.rtype = user_opts["seekrangestyle"]
+
+        for i = last_custom_button, 1, -1 do
+        t_r = t_r - padX
+        geo = { x = t_r, y = geo.y, an = 6, w = geo.w, h = geo.h }
+        t_r = t_r - geo.w
+        lo = add_layout("custom_button_" .. i)
+        lo.geometry = geo
+        lo.style = osc_styles.vidtitleBar
+    end
 end
 
 layouts["bottombar"] = function()
@@ -3098,6 +3147,10 @@ mp.observe_property("title-bar", "bool", function(_, val)
 end)
 mp.observe_property("window-maximized", "bool", function(_, val)
     state.maximized = val
+    request_init_resize()
+end)
+mp.observe_property("ontop", "bool", function(_, val)
+    state.ontop = val
     request_init_resize()
 end)
 mp.observe_property("idle-active", "bool", function(_, val)
