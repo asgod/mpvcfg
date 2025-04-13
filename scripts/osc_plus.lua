@@ -2004,18 +2004,10 @@ local function bar_layout(direction, slim)
     -- Custom buttons
     local t_r = osc_geo.x + osc_geo.w
 
-    for i = last_custom_button, 1, -1 do
-        t_r = t_r - padX
-        geo = { x = t_r, y = geo.y, an = 6, w = geo.w, h = geo.h }
-        t_r = t_r - geo.w
-        lo = add_layout("custom_button_" .. i)
-        lo.geometry = geo
-        lo.style = osc_styles.vidtitleBar
-    end
-
     t_r = t_r - padX
 
     if slim then
+        t_r = t_r - padwc_r
         -- Fullscreen button
         geo = { x = t_r, y = geo.y, an = 6, w = buttonW, h = geo.h }
         lo = add_layout("fullscreen")
@@ -2029,7 +2021,16 @@ local function bar_layout(direction, slim)
         lo.style = osc_styles.vidtitleBar
     end
 
-    t_r = t_r - geo.w - padX
+    t_r = t_r - padX
+
+    for i = last_custom_button, 1, -1 do
+        t_r = t_r - padX
+        geo = { x = t_r, y = geo.y, an = 6, w = 18, h = geo.h }
+        t_r = t_r - geo.w
+        lo = add_layout("custom_button_" .. i)
+        lo.geometry = geo
+        lo.style = osc_styles.vidtitleBar
+    end
 
     -- Title
     geo = { x = t_l, y = geo.y, an = 4,
@@ -2130,15 +2131,6 @@ local function bar_layout(direction, slim)
     lo.slider.tooltip_an = 5
     lo.slider.stype = user_opts["seekbarstyle"]
     lo.slider.rtype = user_opts["seekrangestyle"]
-
-        for i = last_custom_button, 1, -1 do
-        t_r = t_r - padX
-        geo = { x = t_r, y = geo.y, an = 6, w = geo.w, h = geo.h }
-        t_r = t_r - geo.w
-        lo = add_layout("custom_button_" .. i)
-        lo.geometry = geo
-        lo.style = osc_styles.vidtitleBar
-    end
 end
 
 layouts["bottombar"] = function()
