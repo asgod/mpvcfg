@@ -1344,7 +1344,7 @@ local function window_controls(topbar)
     lo.geometry = alignment == "left" and fourth_geo or third_geo
     lo.style = osc_styles.wcButtons
 
-    -- border:   🖾 🏻
+    -- border: 🗔 ⬜   🖾 🏻
     ne = new_element("border", "button")
     if state.border or state.fullscreen then
         ne.content = "🏻"
@@ -2004,33 +2004,34 @@ local function bar_layout(direction, slim)
     -- Custom buttons
     local t_r = osc_geo.x + osc_geo.w
 
-    t_r = t_r - padX
-
-    if slim then
-        t_r = t_r - padwc_r
-        -- Fullscreen button
-        geo = { x = t_r, y = geo.y, an = 6, w = buttonW, h = geo.h }
-        lo = add_layout("fullscreen")
-        lo.geometry = geo
-        lo.style = osc_styles.topButtonsBar
-    else
-        -- Cache
-        geo = { x = t_r, y = geo.y, an = 6, w = 150, h = geo.h }
-        lo = add_layout("cache")
-        lo.geometry = geo
-        lo.style = osc_styles.vidtitleBar
-    end
-
-    t_r = t_r - padX
+    if slim then t_r = t_r - padwc_r end
 
     for i = last_custom_button, 1, -1 do
         t_r = t_r - padX
-        geo = { x = t_r, y = geo.y, an = 6, w = 18, h = geo.h }
+        geo = { x = t_r, y = geo.y, an = 6, w = geo.w, h = geo.h }
         t_r = t_r - geo.w
         lo = add_layout("custom_button_" .. i)
         lo.geometry = geo
         lo.style = osc_styles.vidtitleBar
     end
+
+    t_r = t_r - padX
+
+    if slim then
+        -- Fullscreen button
+        geo = { x = t_r, y = geo.y, an = 6, w = buttonW, h = geo.h }
+        lo = add_layout("fullscreen")
+        lo.geometry = geo
+        lo.style = osc_styles.topButtonsBar
+    end
+
+    -- Cache
+    geo = { x = t_r - buttonW, y = geo.y, an = 6, w = 150, h = geo.h }
+    lo = add_layout("cache")
+    lo.geometry = geo
+    lo.style = osc_styles.vidtitleBar
+
+    t_r = t_r - geo.w - padX
 
     -- Title
     geo = { x = t_l, y = geo.y, an = 4,
