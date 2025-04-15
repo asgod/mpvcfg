@@ -31,6 +31,7 @@ mp.observe_property("osc", "bool", function(_, value)
         mp.msg.error("Please enable OSC after quit!")
     end
 end)
+mp.set_property("osd-margin-y", 50)
 
 local assdraw = require 'mp.assdraw'
 local msg = require 'mp.msg'
@@ -1344,12 +1345,12 @@ local function window_controls(topbar)
     lo.geometry = alignment == "left" and fourth_geo or third_geo
     lo.style = osc_styles.wcButtons
 
-    -- border: 🗔 ⬜   🖾 🏻
+    -- border: 🗔 ⬜   🖾 🏻 ⎗ ⎘
     ne = new_element("border", "button")
     if state.border or state.fullscreen then
-        ne.content = "🏻"
+        ne.content = "⎘"
     else
-        ne.content = ""
+        ne.content = "⎗"
     end
     ne.eventresponder["mbtn_left_up"] =
         function ()  mp.commandv("cycle", "border")  end
@@ -2555,7 +2556,7 @@ local function osc_init()
         end
         local min = math.floor(dmx_cache / 60)
         local sec = math.floor(dmx_cache % 60) -- don't round e.g. 59.9 to 60
-        return "Cache: " .. (min > 0 and
+        return "↯" .. (min > 0 and
             string.format("%sm%02.0fs", min, sec) or
             string.format("%3.0fs", sec))
     end
