@@ -127,6 +127,8 @@ local user_opts = {
     play_pause_mbtn_left_command = "cycle pause",
     play_pause_mbtn_mid_command = "cycle-values loop-playlist inf no",
     play_pause_mbtn_right_command = "cycle-values loop-file inf no",
+    play_pause_wheel_up_command= "add speed 0.25",
+    play_pause_wheel_down_command= "add speed -0.25",
 
     chapter_prev_mbtn_left_command = "osd-msg add chapter -1",
     chapter_prev_mbtn_mid_command = "show-text ${chapter-list} 3000",
@@ -159,6 +161,7 @@ local user_opts = {
     fullscreen_mbtn_right_command = "cycle window-maximized",
     -- luacheck: pop
     
+    cache_mbtn_left_command = "",
     stats_mbtn_left_command = "script-binding commands/open",
     stats_mbtn_mid_command = "",
     stats_mbtn_right_command = "script-binding display-page-4-toggle",
@@ -288,7 +291,7 @@ local function set_osc_styles()
         bb_Stracks    =  "{\\blur0\\bord0\\1c&H70DC57\\3c&HFFFFFF\\fs24\\fnmpv-osd-symbols}",
         bb_volume     =  "{\\blur0\\bord0\\1c&H00F0FF\\3c&HFFFFFF\\fs30\\fnmpv-osd-symbols}",
         bb_fs         =  "{\\blur0\\bord0\\1c&HAC328E\\3c&HFFFFFF\\fs30\\fnmpv-osd-symbols}",
-        bb_lua_stats  =  "{\\blur0\\bord0\\1c&H9370DB\\3c&HFFFFFF\\fs30\\fr180\\fnmpv-osd-symbols}",
+        bb_lua_stats  =  "{\\blur0\\bord0\\1c&H9370DB\\3c&HFFFFFF\\fs30\\fnmpv-osd-symbols}",
         bb_seekbar    = ("{\\blur0\\bord0\\1c&HFFFFFF\\3c&HFFFFFF\\fs14\\b%d\\q2\\fn%s}"):format(user_opts.font_bold, user_opts.font),
         bb_seektime   = ("{\\blur0.54\\bord%s\\1c&HFFFFFF\\3c&H000000\\fs18\\b%d\\fn%s}"):format(user_opts.tooltipborder, user_opts.font_bold, user_opts.font_mono),
         bb_timecodes  = ("{\\blur0\\bord0\\1c&HDCDCDC\\3c&HFFFFFF\\fs20\\b%d\\fn%s}"):format(user_opts.font_bold, user_opts.font_mono),
@@ -633,6 +636,10 @@ local function update_margins()
         reset_margins()
     end
 
+    if utils.shared_script_property_set then
+    utils.shared_script_property_set("osc-margins",
+        string.format("%f,%f,%f,%f", margins.l, margins.r, margins.t, margins.b))
+    end
     mp.set_property_native("user-data/osc/margins", margins)
 end
 
@@ -1580,10 +1587,18 @@ layouts["box"] = function ()
         {x = posX + pos_offsetX, y = bottomrowY, an = 6, w = 110, h = 18}
     lo.style = osc_styles.timecodes
 
-    lo = add_layout("cache")
-    lo.geometry =
-        {x = posX, y = bottomrowY, an = 5, w = 110, h = 18}
-    lo.style = osc_styles.timecodes
+    if cache_enabled() then
+        lo = add_layout("cache")
+        lo.geometry =
+            {x = posX, y = bottomrowY, an = 5, w = 50, h = 18}
+        lo.style = osc_styles.timecodes
+
+        lo = add_layout("quality_menu")
+        lo.geometry =
+            {x = posX + 50, y = bottomrowY, an = 5, w = 25, h = 18}
+        lo.style = osc_styles.timecodes
+    end
+
 
 end
 
@@ -1637,12 +1652,12 @@ layouts["bottombox"] = function ()
     --
 
     new_element("bb_background", "box")
-	lo = add_layout("bb_background")
-	lo.geometry = {x = posX, y = osc_param.playresy, an = 5, w = osc_w, h = 0}
-	lo.layer = 10
-	lo.style = osc_styles.bb_background
-	lo.alpha[1] = 255
-	lo.alpha[3] = 0
+    lo = add_layout("bb_background")
+    lo.geometry = {x = posX, y = osc_param.playresy, an = 5, w = osc_w, h = 0}
+    lo.layer = 10
+    lo.style = osc_styles.bb_background
+    lo.alpha[1] = 255
+    lo.alpha[3] = 0
 
     --
     -- title
@@ -1666,7 +1681,7 @@ layouts["bottombox"] = function ()
     -- sub_title
 
     lo = add_layout("sub_title")
-    lo.geometry = {x = posX + pos_offsetX, y = titlerowY - 55, an = 6, w = 0, h = 0}
+    lo.geometry = {x = osc_geo.p, y = titlerowY - 55, an = 4, w = 0, h = 0}
     lo.style = osc_styles.bb_sub_title
     lo.button.maxchars = user_opts.boxmaxchars
 
@@ -1730,6 +1745,13 @@ layouts["bottombox"] = function ()
         {x = posX - pos_offsetX + (50 * 2) + osc_geo.p, y = bigbtnrowY, an = 5, w = 70, h = 25}
     lo.style = osc_styles.bb_Stracks
 
+    -- ref stats.lua
+
+    lo = add_layout("stats")
+    lo.geometry =
+        {x = posX - pos_offsetX + 160 + osc_geo.p, y = bigbtnrowY, an = 5, w = 25, h = 25}
+    lo.style = osc_styles.bb_lua_stats
+
     lo = add_layout("fullscreen")
     lo.geometry =
         {x = posX + pos_offsetX - 25, y = bigbtnrowY, an = 5, w = 25, h = 25}
@@ -1742,14 +1764,31 @@ layouts["bottombox"] = function ()
 
     if (osc_param.display_aspect < 1) then lo.geometry.x = osc_geo.w - 40 end
 
-    -- ref stats.lua
+    for i =1, last_custom_button do
+        lo = add_layout("custom_button_" .. i)
+        if (osc_param.display_aspect > 0.5) then
+            lo.geometry = {x = posX + pos_offsetX - (i-1)*30, y = titlerowY - 55, an = 5, w = 25, h = 18}
+        end
+        if (osc_param.display_aspect > 1) then
+            lo.geometry = { x = posX + pos_offsetX - 95 - (i-1)*30, y = bigbtnrowY, an = 5, w = 25, h = 25 }
+        end
+        lo.style = osc_styles.bb_cachetime
+    end
 
-    lo = add_layout("stats")
-    lo.geometry =
-        {x = posX + pos_offsetX - (45 * 2) - osc_geo.p, y = bigbtnrowY + 2, an = 5, w = 25, h = 25}
-    lo.style = osc_styles.bb_lua_stats
+    if cache_enabled() then
+        if (osc_param.display_aspect < 1) then lo.geometry.x = osc_geo.w - 30 end
+        local t_r = lo.geometry.x - lo.geometry.w
+        lo = add_layout("quality_menu")
+        lo.geometry =
+            {x = t_r, y = bigbtnrowY, an = 5, w = 25, h = 25}
+        lo.style = osc_styles.bb_cachetime
 
-    if (osc_param.display_aspect < 1) then lo.geometry.x = osc_geo.w - 60 end
+        t_r = lo.geometry.x
+        lo = add_layout("cache")
+        lo.geometry =
+            {x = t_r - osc_geo.p, y = bigbtnrowY, an = 6, w = 50, h = 25}
+        lo.style = osc_styles.bb_cachetime
+    end
 
     --
     -- seekbar
@@ -1766,7 +1805,7 @@ layouts["bottombox"] = function ()
     lo.slider.rtype = user_opts["seekrangestyle"]
 
     --
-    -- cache time
+    -- time
     --
 
     local bottomrowY = posY + pos_offsetY - 5
@@ -1780,11 +1819,6 @@ layouts["bottombox"] = function ()
     lo.geometry =
         {x = posX + pos_offsetX, y = bottomrowY, an = 6, w = 80, h = 18}
     lo.style = osc_styles.bb_timecodes
-
-    lo = add_layout("cache")
-    lo.geometry =
-        {x = posX - pos_offsetX, y = bottomrowY - pos_offsetY + 18, an = 4, w = 110, h = 14}
-    lo.style = osc_styles.bb_cachetime
 
 end
 
@@ -1889,13 +1923,20 @@ layouts["slimbox"] = function ()
     lo.alpha[3] = user_opts.boxalpha
 
     -- Cache
+    if cache_enabled() then
+        lo = add_layout("cache")
+        lo.geometry =
+            {x = posX, y = posY, an = 8, w = 50, h = ele_h}
+        lo.style = styles.timecodes
+        lo.alpha[3] = user_opts.boxalpha
 
-    lo = add_layout("cache")
-    lo.geometry =
-        {x = posX, y = posY + 1,
-        an = 8, w = tc_w, h = ele_h}
-    lo.style = styles.timecodes
-    lo.alpha[3] = user_opts.boxalpha
+        lo = add_layout("quality_menu")
+        lo.geometry =
+            {x = posX + 50, y = posY, an = 8, w = 25, h = ele_h}
+        lo.style = styles.timecodes
+        lo.alpha[3] = user_opts.boxalpha
+    end
+
 end
 
 local function bar_layout(direction, slim)
@@ -2002,38 +2043,40 @@ local function bar_layout(direction, slim)
 
     local t_l = geo.x + geo.w + padX
 
-    -- Custom buttons
     local t_r = osc_geo.x + osc_geo.w
-
-    if slim then t_r = t_r - padwc_r end
-
-    for i = last_custom_button, 1, -1 do
-        t_r = t_r - padX
-        geo = { x = t_r, y = geo.y, an = 6, w = geo.w, h = geo.h }
-        t_r = t_r - geo.w
-        lo = add_layout("custom_button_" .. i)
-        lo.geometry = geo
-        lo.style = osc_styles.vidtitleBar
-    end
-
-    t_r = t_r - padX
 
     if slim then
         -- Fullscreen button
-        geo = { x = t_r, y = geo.y, an = 6, w = buttonW, h = geo.h }
+        geo = { x = t_r - padX - padwc_r, y = geo.y, an = 6, w = buttonW, h = 25 }
         lo = add_layout("fullscreen")
+        lo.geometry = geo
+        lo.style = osc_styles.smallButtonsBar
+        t_r = geo.x - geo.w
+    end
+
+    -- Custom buttons
+    for i = 1, last_custom_button do
+        geo = { x = t_r - padX - (i-1)*geo.w, y = geo.y, an = 6, w = buttonW, h = 25 }
+        lo = add_layout("custom_button_" .. i)
+        lo.geometry = geo
+        lo.style = osc_styles.smallButtonsBar
+    end
+
+    if cache_enabled() then
+        -- quality-menu
+        geo = { x = geo.x - padX - geo.w, y = geo.y, an = geo.an, w = buttonW, h = geo.h }
+        lo = add_layout("quality_menu")
+        lo.geometry = geo
+        lo.style = osc_styles.smallButtonsBar
+
+        -- Cache
+        geo = { x = geo.x - padX - geo.w, y = geo.y, an = geo.an, w = 50, h = geo.h }
+        lo = add_layout("cache")
         lo.geometry = geo
         lo.style = osc_styles.topButtonsBar
     end
 
-    -- Cache
-    geo = { x = t_r - buttonW, y = geo.y, an = 6, w = 150, h = geo.h }
-    lo = add_layout("cache")
-    lo.geometry = geo
-    lo.style = osc_styles.vidtitleBar
-
-    t_r = t_r - geo.w - padX
-
+    t_r = geo.x - geo.w - padX
     -- Title
     geo = { x = t_l, y = geo.y, an = 4,
             w = t_r - t_l, h = geo.h }
@@ -2242,7 +2285,7 @@ local function osc_init()
     
     -- sub_title 
     ne = new_element("sub_title", "button")
-    ne.visible = (osc_param.display_aspect > 1)
+    ne.visible = (osc_param.display_aspect > 0.5)
 
     ne.content = function ()
         local title = state.forced_sub_title or
@@ -2543,12 +2586,12 @@ local function osc_init()
     -- cache
     ne = new_element("cache", "button")
 
-    ne.content = function ()
+    ne.content = function()
         if not cache_enabled() then
             return ""
         end
         local dmx_cache = state.cache_state["cache-duration"]
-        local thresh = math.min(state.dmx_cache * 0.05, 5)  -- 5% or 5s
+        local thresh = math.min(state.dmx_cache * 0.05, 5) -- 5% or 5s
         if dmx_cache and math.abs(dmx_cache - state.dmx_cache) >= thresh then
             state.dmx_cache = dmx_cache
         else
@@ -2560,6 +2603,16 @@ local function osc_init()
             string.format("%sm%02.0fs", min, sec) or
             string.format("%3.0fs", sec))
     end
+    bind_mouse_buttons("cache")
+
+    -- START quality-menu
+    ne = new_element("quality_menu", "button")
+    ne.content = "🎞"
+    ne.eventresponder["mbtn_left_up"] =
+        function () mp.commandv("script-message-to", "quality_menu", "video_formats_toggle") end
+    ne.eventresponder["mbtn_right_up"] =
+        function () mp.commandv("script-message-to", "quality_menu", "audio_formats_toggle") end
+    -- END quality-menu
 
     -- volume
     ne = new_element("volume", "button")
@@ -2585,11 +2638,17 @@ local function osc_init()
         ne.content = content
         bind_mouse_buttons("custom_button_" .. i)
         last_custom_button = i
+        if (user_opts.layout == "bottombox") then
+            ne.visible = (osc_param.display_aspect > 0.5)
+        end
     end
 
     -- bottombox
     ne = new_element("stats", "button")
-    ne.content = icons.subtitle
+    if (user_opts.layout == "bottombox") then
+        ne.visible = (osc_param.display_aspect > 1)
+    end
+    ne.content ="🗠"
     bind_mouse_buttons("stats")
 
     -- load layout
@@ -3048,7 +3107,12 @@ end
 
 local function shutdown()
     reset_margins()
+    if utils.shared_script_property_set then
+    utils.shared_script_property_set("osc-margins", nil)
+    end
+    if mp.del_property then
     mp.del_property("user-data/osc")
+    end
 end
 
 -- duration is observed for the sole purpose of updating chapter markers
@@ -3244,6 +3308,9 @@ local function visibility_mode(mode, no_osd)
     end
 
     user_opts.visibility = mode
+    if utils.shared_script_property_set then
+    utils.shared_script_property_set("osc-visibility", mode)
+    end
     mp.set_property_native("user-data/osc/visibility", mode)
 
     if not no_osd and tonumber(mp.get_property("osd-level")) >= 1 then
@@ -3276,6 +3343,9 @@ local function idlescreen_visibility(mode, no_osd)
         user_opts.idlescreen = false
     end
 
+    if utils.shared_script_property_set then
+    utils.shared_script_property_set("osc-idlescreen", mode)
+    end
     mp.set_property_native("user-data/osc/idlescreen", user_opts.idlescreen)
 
     if not no_osd and tonumber(mp.get_property("osd-level")) >= 1 then
