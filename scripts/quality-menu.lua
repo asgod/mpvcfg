@@ -13,6 +13,7 @@ local utils = require 'mp.utils'
 local msg = require 'mp.msg'
 local assdraw = require 'mp.assdraw'
 local opt = require('mp.options')
+local input = require "mp.input"
 local script_name = mp.get_script_name()
 
 local opts = {
@@ -987,6 +988,55 @@ local function loading_message(menu_type)
     open_menu_state = menu_type
 end
 
+local function select_menu_open(formats, active_format, menu_type)
+    mp.set_property_bool("user-data/".. script_name .."/video", menu_type.is_video)
+--     msg.info(active_format)
+--     msg.info(utils.to_string(menu_type.is_video))
+--     msg.info(mp.get_property("user-data/".. script_name .."/video"))
+    local _items = {}
+    local _default_item = 0
+    --set the cursor to the current format
+    for i, format in ipairs(formats) do
+        if format.id == active_format then _default_item = i end
+        _items[i] = i .." " .. format.label
+    end
+    _items[#_items+1] = #_items+1 .. " " .. menu_type.to_other_type.type_capitalized .. ' menu'
+    if active_format == '' then
+        _default_item = #formats + 1
+    end
+--     msg.info(#_items,_default_item)
+    input.select({
+        prompt = "Select a format entry:",
+        items = _items,
+        default_item = _default_item,
+        submit = function (index)
+--             msg.info(index)
+            if index == _default_item then return end
+            if current_url == nil then return end
+            if index == #_items then
+                mp.set_property_bool("user-data/".. script_name .."/video", not menu_type.is_video)
+                return
+            end
+            open_menu_state = nil
+            local video_id, audio_id
+            local id = formats[index] and formats[index].id or ''
+            local data = url_data[current_url]
+            if menu_type.is_video then
+                video_id = id
+                audio_id = sanitize_format_id(data.audio_active_id, data.audio_formats)
+            else
+                video_id = sanitize_format_id(data.video_active_id, data.video_formats)
+                audio_id = id
+            end
+            set_format(current_url, video_id, audio_id)
+        end,
+    })
+end
+mp.observe_property("user-data/".. script_name .."/video", "bool", function(_, isvideo)
+    if isvideo then menu_open(states.video_menu)
+    else menu_open(states.audio_menu)
+    end
+end)
 ---@param menu_type UIState
 function menu_open(menu_type)
     if not current_url then return end
@@ -1015,7 +1065,10 @@ function menu_open(menu_type)
 
     ensure_menu_data_filled(formats, menu_type)
     if uosc_available then uosc_menu_open(formats, active_format, menu_type)
-    else text_menu_open(formats, active_format, menu_type) end
+    else
+--         text_menu_open(formats, active_format, menu_type)
+        select_menu_open(formats, active_format, menu_type)
+    end
     open_menu_state = menu_type
 end
 
@@ -1045,12 +1098,11 @@ local function toggle_menu(menu_type)
         end
         return
     end
-
     menu_open(menu_type)
 end
 
-function video_formats_toggle() toggle_menu(states.video_menu) end
-function audio_formats_toggle() toggle_menu(states.audio_menu) end
+function video_formats_toggle() menu_open(states.video_menu) end
+function audio_formats_toggle() menu_open(states.audio_menu) end
 
 -- keybind to launch menu
 mp.add_key_binding(nil, 'video_formats_toggle', video_formats_toggle)
