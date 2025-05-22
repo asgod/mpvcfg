@@ -160,21 +160,21 @@ local user_opts = {
     fullscreen_mbtn_mid_command = "",
     fullscreen_mbtn_right_command = "cycle window-maximized",
     -- luacheck: pop
-    
+
     cache_mbtn_left_command = "",
     stats_mbtn_left_command = "script-binding commands/open",
     stats_mbtn_mid_command = "",
     stats_mbtn_right_command = "script-binding display-page-4-toggle",
     stats_wheel_down_command = "script-binding display-page-1",
     stats_wheel_up_command = "script-binding display-page-2",
-    
+
     scaleforcedwindow = 2,
 
     -- customize options for osc_plus
     scale_shift = 1,                     -- hr scale
     sub_title = "hwdec: ${hwdec-current}",      -- title eg: ${contrast} ${brightness} ${gamma} ${saturation} ${hue}
-    sub_title2 = "scale: ${current-window-scale}", 
-    seekbar_scrollseek = "fast",         -- <fast|second|frame> 
+    sub_title2 = "scale: ${current-window-scale}",
+    seekbar_scrollseek = "second",         -- <fast|second|frame>
     showonpause = false,                 -- show on pause
     showonstart = false,                 -- show on start
     showonseek = false,                  -- show on seek
@@ -2282,7 +2282,7 @@ local function osc_init()
     ne = new_element("menu", "button")
     ne.content = icons.menu
     bind_mouse_buttons("menu")
-    
+
     -- sub_title 
     ne = new_element("sub_title", "button")
     ne.visible = (osc_param.display_aspect > 0.5)
@@ -2529,9 +2529,9 @@ local function osc_init()
 
     if user_opts.scrollcontrols then
         ne.eventresponder["wheel_up_press"] =
-            function () mp.commandv("osd-auto", "seek",  10) end
+            function () mp.commandv("osd-auto", "seek", -3) end
         ne.eventresponder["wheel_down_press"] =
-            function () mp.commandv("osd-auto", "seek", -10) end
+            function () mp.commandv("osd-auto", "seek", 3) end
     end
 
 
@@ -2558,7 +2558,7 @@ local function osc_init()
     ne = new_element("tc_right", "button")
 
     ne.visible = (mp.get_property_number("duration", 0) > 0)
-    if (user_opts.layout == "bottombox") and (mp.get_property_number("duration", 0) > 0) then 
+    if (user_opts.layout == "bottombox") and (mp.get_property_number("duration", 0) > 0) then
         ne.visible = (osc_param.display_aspect > 0.5)
     end
 
@@ -3148,8 +3148,8 @@ end
 
 mp.register_event("shutdown", shutdown)
 mp.register_event("start-file", request_init)
-if user_opts.showonstart then mp.register_event("file-loaded", show_osc) end 
-if user_opts.showonseek then mp.register_event("seek", show_osc) end         
+if user_opts.showonstart then mp.register_event("file-loaded", show_osc) end
+if user_opts.showonseek then mp.register_event("seek", show_osc) end
 mp.observe_property("track-list", "native", request_init)
 mp.observe_property("playlist-count", "native", request_init)
 mp.observe_property("chapter-list", "native", function(_, list)
